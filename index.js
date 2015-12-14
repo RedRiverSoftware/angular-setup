@@ -84,6 +84,7 @@ AngularSetup.prototype.auth = function(getToken) {
         return $http.post('/auth/refresh').then(check);
       }
 
+      check();
       refresh();
       $interval(refresh, 60 * 1000)
     })
@@ -181,6 +182,7 @@ AngularSetup.prototype.defaultRun = function(module) {
 
     $rootScope.$on('$stateChangeStart', function(e, toState) {
       onStateChange(self.name, toState, $rootScope);
+      authenticateState($rootScope.token, toState, e);
     });
   })
 }
@@ -205,12 +207,12 @@ AngularSetup.prototype.done = function() {
     fn.call(self, module);
   })
 
-  this.defaultRun(module);
-
   // trigger run fns
   this.runs.forEach(function(fn){
     fn.call(self, module);
   })
+
+  this.defaultRun(module);
 
   return module;
 }
@@ -233,4 +235,68 @@ function onStateChange(name, toState, $rootScope) {
     document.title = toState.data.title;
   }
   $rootScope.stateName = (toState.name || '').replace(/\./g, '-');
+}
+
+
+
+function authenticateState(token, toState, event){
+  var data = toState.data || {};
+  var authenticate = data.authenticate;
+
+  // no authentication required
+  if (!authenticate) {
+    debug('nav to "%s" (unauth)', toState.name);
+    return;
+  }
+
+  // no auth but route request auth
+  if (!token) {
+    event.preventDefault();
+    debug('nav to "%s" : requires auth - going to login', toState.name);
+    window.location = '/login?redirect=' + toState.url;
+    return;
+  }
+
+  var claims = data.claims || [];
+  var claimFailed = false;
+
+  claims.forEach(function(claim){
+    var found = false;
+    if (claimFailed) return;
+
+    token.claims.forEach(function(c){
+      if (found) return;
+      if (claim.type == c.type && claim.value == c.value) {
+        found = true;
+      }
+    })
+
+    if (found) {
+      debug('claim found "%s" with value "%s"', claim.type, claim.value);
+      return;
+    }
+
+    claimFailed = true;
+
+    if (claim.redirect) {
+      event.preventDefault();
+      debug('claim NOT found "%s" with value "%s" - redirecting to %s', claim.type, claim.value, claim.redirect);
+      window.location = claim.redirect;
+      return;
+    }
+
+    if (claim.state) {
+      event.preventDefault();
+      debug('claim NOT found "%s" with value "%s" - redirecting to state %s', claim.type, claim.value, claim.state);
+      self.$state.go(claim.state);
+      return;
+    }
+
+    throw new Error('somebody didnt specify a claim.state or claim.redirect')
+  })
+
+  if (token) {
+    debug('nav to "%s"', toState.name);
+    return;
+  }
 }
