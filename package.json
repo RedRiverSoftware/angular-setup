@@ -1,0 +1,12 @@
+{
+  "name": "@redriver/angular-setup",
+  "version": "1.0.0",
+  "dependencies": {
+    "debug": "*"
+  },
+  "peerDependencies": {
+    "angular": "*",
+    "angular-ui-router": "*",
+    "bluebird": "*"
+  }
+}
