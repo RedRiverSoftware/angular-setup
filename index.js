@@ -84,6 +84,7 @@ AngularSetup.prototype.auth = function(getToken) {
         return $http.post('/auth/refresh').then(check);
       }
 
+      refresh();
       $interval(refresh, 60 * 1000)
     })
   })
