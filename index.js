@@ -182,7 +182,7 @@ AngularSetup.prototype.defaultRun = function(module) {
 
     $rootScope.$on('$stateChangeStart', function(e, toState) {
       onStateChange(self.name, toState, $rootScope);
-      authenticateState($rootScope.token, toState, e);
+      authenticateState($rootScope.token, toState, $state, e);
     });
   })
 }
@@ -239,7 +239,7 @@ function onStateChange(name, toState, $rootScope) {
 
 
 
-function authenticateState(token, toState, event){
+function authenticateState(token, toState, $state, event){
   var data = toState.data || {};
   var authenticate = data.authenticate;
 
@@ -288,7 +288,7 @@ function authenticateState(token, toState, event){
     if (claim.state) {
       event.preventDefault();
       debug('claim NOT found "%s" with value "%s" - redirecting to state %s', claim.type, claim.value, claim.state);
-      self.$state.go(claim.state);
+      $state.go(claim.state);
       return;
     }
 
