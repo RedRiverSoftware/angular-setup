@@ -85,8 +85,24 @@ AngularSetup.prototype.auth = function(getToken) {
       }
 
       check();
-      refresh();
       $interval(refresh, 60 * 1000)
+    })
+  })
+  return this;
+}
+
+/*
+ * Handy plugin thing with `fn`
+ *
+ * @param {Function} fn
+ * @return {AngularSetup}
+ * @public
+ */
+
+AngularSetup.prototype.api = function(obj) {
+  this.configs.push(function(mod){
+    mod.factory('$api', function(){
+      return obj;
     })
   })
   return this;
@@ -180,6 +196,14 @@ AngularSetup.prototype.defaultRun = function(module) {
       $rootScope.$evalAsync(cb);
     });
 
+    $rootScope.$on('$stateChangeStart', function(e, to, toParams, from, fromParams) {
+      if (to.bounce) {
+        debug('%s : bounce to "%s"', self.name, to.name);
+        e.preventDefault();
+        $state.go(to.name + to.bounce);
+      }
+    });
+
     $rootScope.$on('$stateChangeStart', function(e, toState) {
       onStateChange(self.name, toState, $rootScope);
       authenticateState($rootScope.token, toState, $state, e);
@@ -231,8 +255,8 @@ function onStateChange(name, toState, $rootScope) {
   if (!toState.name) return;
   debug('%s : state change "%s"', name, toState.name);
 
-  if (toState.data && toState.data.title) {
-    document.title = toState.data.title;
+  if (toState && toState.title) {
+    document.title = toState.title;
   }
   $rootScope.stateName = (toState.name || '').replace(/\./g, '-');
 }
